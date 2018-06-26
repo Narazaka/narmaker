@@ -3,6 +3,7 @@ import { ReadStream } from "fs";
 import { FileSystemObject } from "fso";
 import * as JSZip from "jszip";
 import normalizePath = require("normalize-path");
+import * as path from "path";
 import { UpdateInformations } from "./UpdateInformations";
 
 const md5 = (readStream: ReadStream) => new Promise<string>((resolve, reject) => {
@@ -13,7 +14,38 @@ const md5 = (readStream: ReadStream) => new Promise<string>((resolve, reject) =>
     readStream.on("error", reject);
 });
 
+function toIgnorePathMap(ignorePaths?: string[]) {
+    const map: {[path: string]: boolean} = {};
+    for (const ignorePath of (ignorePaths || []).map(path.normalize)) {
+        map[ignorePath] = true;
+    }
+
+    return map;
+}
+
 export class NarMaker {
+    static globalIgnoreFileNames = [
+        "desktop.ini",
+        "thumbs.db",
+        "folder.htt",
+        "mscreate.dir",
+        ".DS_Store",
+        "_CATALOG.VIX",
+        "profile",
+    ];
+
+    static globalIgnoreDirectoryNames = [
+        "profile",
+        "var",
+        "__MACOSX",
+        "XtraStuf.mac",
+    ];
+
+    static updatesAlwaysIgnorePaths = [
+        "updates.txt",
+        "updates2.dau",
+    ];
+
     static parseDeveloperOptions(content: string) {
         const ignores: {[path: string]: {nonar?: boolean; noupdate?: boolean}} = {};
         for (const line of content.split(/\r?\n/)) {
@@ -41,22 +73,22 @@ export class NarMaker {
         );
     }
 
-    private static developerOptionRe = /^(.+),(nonar|noupdate)(?:,(nonar|noupdate))?$/;
+    private static developerOptionRe = /^(.+?),(nonar|noupdate)(?:,(nonar|noupdate))?$/;
 
-    readonly rootPath: string;
-    readonly narIgnorePaths: string[];
-    readonly updatesIgnorePaths: string[];
-    readonly root: FileSystemObject;
+    private readonly root: FileSystemObject;
+    private readonly narIgnorePaths: {[path: string]: boolean};
+    private readonly updatesIgnorePaths: {[path: string]: boolean};
 
     constructor(rootPath: string, options: {narIgnorePaths?: string[], updatesIgnorePaths?: string[]} = {}) {
-        this.rootPath = rootPath;
-        this.narIgnorePaths = options.narIgnorePaths || [];
-        this.updatesIgnorePaths = options.updatesIgnorePaths || [];
-        this.root = new FileSystemObject(this.rootPath);
+        this.root = new FileSystemObject(rootPath);
+        this.narIgnorePaths = toIgnorePathMap(options.narIgnorePaths);
+        this.updatesIgnorePaths = toIgnorePathMap(
+            (options.updatesIgnorePaths || []).concat(NarMaker.updatesAlwaysIgnorePaths),
+        );
     }
 
     async makeNar() {
-        const children = await this.root.filteredChildrenAll(this.narIgnorePaths);
+        const children = await this.filteredChildrenAll(this.narIgnorePaths);
 
         const zip = new JSZip();
         for (const child of children) {
@@ -85,7 +117,7 @@ export class NarMaker {
     }
 
     async makeUpdates() {
-        const children = await this.root.filteredChildrenAll(this.updatesIgnorePaths);
+        const children = await this.filteredChildrenAll(this.updatesIgnorePaths);
 
         const updates = new UpdateInformations();
         for (const child of children) {
@@ -105,5 +137,15 @@ export class NarMaker {
         const updates = await this.makeUpdates();
         await this.root.join("updates.txt").writeFile(updates.updatesTxt());
         await this.root.join("updates2.dau").writeFile(updates.updates2dau());
+    }
+
+    protected filteredChildrenAll(ignorePaths: {[path: string]: boolean}) {
+        return this.root.filteredChildrenAll(async (file) =>
+            !ignorePaths[this.root.relative(file).path] && (
+                await file.isDirectory() ?
+                !NarMaker.globalIgnoreDirectoryNames.includes(file.basename().path) :
+                !NarMaker.globalIgnoreFileNames.includes(file.basename().path)
+            ),
+        );
     }
 }
