@@ -1,8 +1,11 @@
 {
   "name": "narmaker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ukagaka nar / updates maker",
-  "keywords": ["ukagaka", "nar"],
+  "keywords": [
+    "ukagaka",
+    "nar"
+  ],
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "bin": {
