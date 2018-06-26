@@ -1,10 +1,10 @@
 # narmaker
 
 ```bash
-npm install narmaker
+npm install -g narmaker
 
-npx mkupdates ghosts/myghost
-npx mknar ghosts/myghost nars/myghost.nar
+mkupdates ghosts/myghost
+mknar ghosts/myghost nars/myghost.nar
 ```
 
 ## License
