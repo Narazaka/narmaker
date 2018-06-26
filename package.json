@@ -1,12 +1,38 @@
 {
   "name": "narmaker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "ukagaka nar / updates maker",
+  "keywords": ["ukagaka", "nar"],
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
+  "bin": {
+    "mknar": "dist/bin/mknar.js",
+    "mkupdates": "dist/bin/mkupdates.js"
   },
-  "keywords": [],
+  "files": [
+    "dist/bin",
+    "dist/lib"
+  ],
+  "engines": {
+    "node": ">= 8"
+  },
+  "scripts": {
+    "prepare": "npm run dist",
+    "prepublishOnly": "npm run lint",
+    "dist": "shx rm -rf dist && tsc",
+    "lint": "tslint -p ."
+  },
+  "dependencies": {
+    "fso": "^2.6.3",
+    "jszip": "^3.1.5",
+    "normalize-path": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/jszip": "^3.1.4",
+    "shx": "^0.3.1",
+    "tslint": "^5.10.0",
+    "typescript": "^2.9.2"
+  },
   "author": "narazaka",
   "license": "Zlib"
 }
