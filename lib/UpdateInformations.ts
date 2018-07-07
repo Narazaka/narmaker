@@ -8,7 +8,7 @@ export interface UpdateInformation {
 
 export class UpdateInformations extends Array<UpdateInformation> {
     updatesTxt() {
-        return this.map((update) => `file,${update.path} ${update.hash}\x01size=${update.size}\x01${crlf}`).join("");
+        return this.map((update) => `file,${update.path}\x01${update.hash}\x01size=${update.size}\x01${crlf}`).join("");
     }
 
     updates2dau() {
