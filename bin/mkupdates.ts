@@ -9,4 +9,4 @@ if (process.argv.length !== 3) {
     process.exit(1);
 }
 
-NarMaker.withDeveloperOptions(process.argv[2]).then((narMaker) => narMaker.makeUpdatesFile());
+NarMaker.withDeveloperOptions(process.argv[2]).then((narMaker) => narMaker.makeUpdatesFile("shift_jis"));

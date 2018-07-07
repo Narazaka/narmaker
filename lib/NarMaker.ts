@@ -1,6 +1,7 @@
 import * as crypto from "crypto";
 import { ReadStream } from "fs";
 import { FileSystemObject } from "fso";
+import * as iconv from "iconv-lite";
 import * as JSZip from "jszip";
 import normalizePath = require("normalize-path");
 import * as path from "path";
@@ -44,6 +45,10 @@ export class NarMaker {
     static updatesAlwaysIgnorePaths = [
         "updates.txt",
         "updates2.dau",
+        "ghost/master/updates.txt",
+        "ghost/master/updates2.dau",
+        "shell/master/updates.txt",
+        "shell/master/updates2.dau",
     ];
 
     static parseDeveloperOptions(content: string) {
@@ -104,11 +109,15 @@ export class NarMaker {
         return zip;
     }
 
-    async makeNarFile(narPath: string) {
+    async makeNarFile(narPath: string, fileNameEncoding?: string, iconvOptions?: iconv.Options) {
         const zip = await this.makeNar();
+        const encodeFileName =
+            fileNameEncoding ?
+            (fileName: string) => new Uint8Array(iconv.encode(fileName, fileNameEncoding, iconvOptions).buffer) as any :
+            undefined;
 
         return new Promise<void>((resolve, reject) => {
-            const zipStream = zip.generateNodeStream();
+            const zipStream = zip.generateNodeStream({ encodeFileName });
             const writeStream = new FileSystemObject(narPath).createWriteStream();
             zipStream.pipe(writeStream);
             zipStream.on("end", resolve);
@@ -133,10 +142,14 @@ export class NarMaker {
         return updates;
     }
 
-    async makeUpdatesFile() {
+    async makeUpdatesFile(encoding?: string, iconvOptions?: iconv.Options) {
         const updates = await this.makeUpdates();
-        await this.root.join("updates.txt").writeFile(updates.updatesTxt());
-        await this.root.join("updates2.dau").writeFile(updates.updates2dau());
+        const updatesTxt = updates.updatesTxt();
+        const encodedUpdatesTxt = encoding ? iconv.encode(updatesTxt, encoding, iconvOptions) : updatesTxt;
+        const updates2dau = updates.updates2dau();
+        const encodedUpdates2dau = encoding ? iconv.encode(updates2dau, encoding, iconvOptions) : updates2dau;
+        await this.root.join("updates.txt").writeFile(encodedUpdatesTxt);
+        await this.root.join("updates2.dau").writeFile(encodedUpdates2dau);
     }
 
     protected filteredChildrenAll(ignorePaths: {[path: string]: boolean}) {
